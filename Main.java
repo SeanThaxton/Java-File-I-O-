@@ -9,14 +9,14 @@ import java.io.IOException;
 public class Main {
 
     public static void main(String[] args) {
-        // Prompt user for the target file to be reformatted
         Scanner scanner = new Scanner(System.in);
         System.out.println("Enter the path and the name of the file you want to reformat: ");
         String filePath = scanner.nextLine();
-        File userFile = new File(filePath);
+        File inputFile = new File(filePath);
 
         try {
-            if (!userFile.exists() || userFile.isDirectory()) {
+            // Check if the input file exists and is not a directory
+            if (!inputFile.exists() || inputFile.isDirectory()) {
                 System.out.println("File does not exist or is a directory.");
                 return;
             }
@@ -24,27 +24,13 @@ public class Main {
             // Create a temporary file
             File tempFile = createTempFile();
 
-            // Parse each sentence of the file to be edited
-            BufferedReader reader = new BufferedReader(new FileReader(userFile));
-            BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+            // Reformat the input file and write the result to the temporary file
+            reformatFile(inputFile, tempFile);
 
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] sentences = line.split("\\.\\s*");
-                for (String sentence : sentences) {
-                    writer.write(sentence.trim());
-                    writer.newLine();
-                }
-            }
+            // Replace the content of the input file with the content of the temporary file
+            replaceFileContent(tempFile, inputFile);
 
-            // Close resources
-            reader.close();
-            writer.close();
-
-            // Copy contents of temporary file back into the source file
-            copyFileContents(tempFile, userFile);
-
-            // Delete temporary file
+            // Delete the temporary file
             tempFile.delete();
 
             System.out.println("File reformatted successfully.");
@@ -67,18 +53,35 @@ public class Main {
         return tempFile;
     }
 
-    // Method to copy contents of one file to another
-    private static void copyFileContents(File source, File destination) throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader(source));
-        BufferedWriter writer = new BufferedWriter(new FileWriter(destination));
+    // Method to reformat the content of the input file and write it to the temporary file
+    private static void reformatFile(File inputFile, File tempFile) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+             BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
 
-        String line;
-        while ((line = reader.readLine()) != null) {
-            writer.write(line);
-            writer.newLine();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Split the line into sentences using period as delimiter
+                String[] sentences = line.split("\\.\\s*");
+                for (String sentence : sentences) {
+                    // Write each sentence to the temporary file
+                    writer.write(sentence.trim());
+                    writer.newLine(); // Add newline after each sentence
+                }
+            }
         }
+    }
 
-        reader.close();
-        writer.close();
+    // Method to replace the content of the original file with the content of the temporary file
+    private static void replaceFileContent(File source, File destination) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader(source));
+             BufferedWriter writer = new BufferedWriter(new FileWriter(destination))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Write each line from the temporary file to the original file
+                writer.write(line);
+                writer.newLine(); // Preserve original newline characters
+            }
+        }
     }
 }
